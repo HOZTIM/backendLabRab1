@@ -276,6 +276,100 @@ $app->get('/users_download_report', function (Request $request, Response $respon
       exit;
 });
 
+$app->get('/products', function (Request $request, Response $response, $args) {
+    $db = $this->get('db');
+    $sth = $db->prepare("SELECT * FROM products");
+    $sth->execute();
+    $products = $sth->fetchAll(\PDO::FETCH_OBJ);
+
+    $view = Twig::fromRequest($request);
+    return $view->render($response, 'products.html', [
+        'products' => $products
+    ]);
+    die;
+});
+
+$app->post('/add-cart', function (Request $request, Response $response, $args) {
+    try
+    {
+        $parsedBody = $request->getParsedBody();
+        $id = $parsedBody["itemId"];
+        $basket = array();
+        if(isset($_COOKIE['basket']))
+            $basket = json_decode($_COOKIE['basket'], true);
+        $basket[] = $id;
+        setcookie("basket", json_encode($basket));
+        $redirect = "http://localhost:8888/products";
+        header("Location: $redirect");
+    }
+    catch(Throwable $ex)
+    {
+        return $response->withStatus($ex->getCode());
+    }
+});
+
+$app->get('/cart', function (Request $request, Response $response, $args) {
+    $db = $this->get('db');
+    $sth = $db->prepare("SELECT * FROM products");
+    $sth->execute();
+
+    $products = $sth->fetchAll(\PDO::FETCH_OBJ);
+    $basket = array();
+    if(isset($_COOKIE['basket']))
+        $basket = json_decode($_COOKIE['basket'], true);
+    $newBasket = array();
+    for ($i = 0; $i < count($basket); $i++) {
+        $product = $products[$basket[$i]];
+        $newProduct = (object) [
+            'id' => $product->id,
+            'name' => $product->name,
+            'price' => $product->price,
+            'image' => $product->image,
+            'arrayId' => $i,
+          ];
+        $newBasket[] = $newProduct;
+    }
+    // foreach($basket as $id)
+    // {
+    //     $product = $products[$id-1];
+    //     $product->arrayId =  $id-1;
+    //     $newBasket[] = $products[$id-1];
+    // }
+    $view = Twig::fromRequest($request);
+    return $view->render($response, 'cart.html', [
+        'products' => $newBasket
+    ]);
+    die;
+});
+
+$app->post('/remove-cart', function (Request $request, Response $response, $args) {
+    try
+    {
+        $parsedBody = $request->getParsedBody();
+        $arrayId = $parsedBody["itemId"];
+        $basket = array();
+        if(isset($_COOKIE['basket']))
+            $basket = json_decode($_COOKIE['basket'], true);
+        if($arrayId == count($basket)-1){
+            array_pop($basket);
+        }
+        else{
+            for ($i = $arrayId; $i < count($basket)-1; $i++) {
+                // dump($i);
+                $basket[$i] = $basket[$i+1];
+            }
+            array_pop($basket);
+        }
+        setcookie("basket", json_encode($basket));
+        $redirect = "http://localhost:8888/cart";
+        header("Location: $redirect");
+    }
+    catch(Throwable $ex)
+    {
+        return $response->withStatus($ex->getCode());
+    }
+});
+
 $methodOverrideMiddleware = new MethodOverrideMiddleware();
 $app->add($methodOverrideMiddleware);
 
