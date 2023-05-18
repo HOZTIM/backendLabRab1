@@ -45,6 +45,7 @@
                 <th>Name</th>
                 <th>Price</th>
                 <th>Image</th>
+                <th>Count</th>
             </tr>
         </thead>
         <tbody>
@@ -53,9 +54,10 @@
                 <td>{{product.name}}</td>
                 <td>{{product.price}}</td>
                 <td><img src="{{product.image}}" alt="" class="product_img"></td>
+                <td>{{product.count}}</td>
                 <td class="product_button">
                     <form method="post" action="/remove-cart">
-                        <input type="hidden" name="itemId" value="{{product.arrayId}}">
+                        <input type="hidden" name="key" value="{{product.key}}">
                         <input type="submit" value="Удалить" />
                     </form>
                 </td>

@@ -26,7 +26,7 @@
     <h2>Изменить данные</h2>
     <form method="post" action="{{ url_for('user', { 'id': user.id }) }}">
         <input type="hidden" name="_METHOD" value="PUT">
-        <input name="first_name" placeholder="Имя"/> <br>
+        <input name="first_name" placeholder="Имя" value="{{ user.first_name}}"/> <br>
         <input name="last_name" placeholder="Фамилия"/><br>
         <input name="email" placeholder="Почта"/><br><br>
         <input type="submit" value="Редактировать" />

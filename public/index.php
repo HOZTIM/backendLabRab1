@@ -32,34 +32,11 @@ $app->get('/', function (Request $request, Response $response, $args) {
     return $response;
 });
 
-// $app->get('/users', function (Request $request, Response $response, $args) {
-//     // GET Query params
-//     $query_params = $request->getQueryParams();
-//     dump($query_params);
-//     die;
-
-//     $db = $this->get('db');
-//     $sth = $db->prepare("SELECT * FROM users");
-//     $sth->execute();
-//     $users = $sth->fetchAll(\PDO::FETCH_OBJ);
-//     // dump($users);
-//     // die;
-
-//     $view = Twig::fromRequest($request);
-//     return $view->render($response, 'users.html', [
-//         'users' => $users
-//     ]);
-// });
-
 $app->get('/users', function (Request $request, Response $response, $args) {
-    // GET Query params
-    // dump(gettype($query_params));
     $db = $this->get('db');
     $sth = $db->prepare("SELECT * FROM users");
     $sth->execute();
     $users = $sth->fetchAll(\PDO::FETCH_OBJ);
-    // dump($users);
-    // die;
 
     $query_params = $request->getQueryParams();
     $format = Null;
@@ -129,9 +106,6 @@ $app->get('/users/{id}', function (Request $request, Response $response, $args) 
 })->setName('user');
 
 $app->post('/users', function (Request $request, Response $response, $args) {
-    // получаем тело запроса
-    // dump($parsedBody);
-    // die;
     try
     {
         $db = $this->get('db');
@@ -140,11 +114,9 @@ $app->post('/users', function (Request $request, Response $response, $args) {
         $first_name = $parsedBody["first_name"];
         $last_name = $parsedBody["last_name"];
         $email = $parsedBody["email"];
-        // first_name, last_name, email могут несуществовать
         $sth = $db->prepare("INSERT INTO users (first_name, last_name, email) VALUES (?,?,?)");
         $sth->execute([$first_name, $last_name, $email]);
 
-        // $user = "{'first_name':{$first_name},'2':{$last_name},'3':{$email}}";
 
         $user = array(
             'first_name'=>$first_name,
@@ -196,15 +168,6 @@ $app->patch('/users/{id}', function (Request $request, Response $response, $args
 });
 
 $app->put('/users/{id}', function (Request $request, Response $response, $args) {
-    // $id = $args['id'];
-    // $db = $this->get('db');
-    // $parsedBody = $request->getParsedBody();
-
-    // $first_name = $parsedBody["first_name"];
-    // $last_name = $parsedBody["last_name"];
-    // $email = $parsedBody["email"];
-    // // dump($parsedBody);
-    // die;
     try
     {
         $id = $args['id'];
@@ -220,17 +183,6 @@ $app->put('/users/{id}', function (Request $request, Response $response, $args) 
         $sth->execute([$first_name, $last_name, $email, $id]);
         $redirect = "http://localhost:8888/users";
         header("Location: $redirect");
-
-        // $user = array(
-        //     'first_name'=>$first_name,
-        //     'last_name'=>$last_name,
-        //     'email'=>$email
-        // );
-        // $jsonUser = json_encode($user);
-        // $response->getBody()->write($jsonUser);
-        // $response = $response->withHeader('Content-type', 'application/json');
-        
-        // return $response->withStatus(200);
     }
     catch(Throwable $ex)
     {
@@ -258,11 +210,10 @@ $app->delete('/users/{id}', function (Request $request, Response $response, $arg
 $app->get('/users_download_report', function (Request $request, Response $response, $args) {
     $root = dirname(__FILE__);
     $file = $root.'/'.'sample.pdf';
-    $datee = date ('Y-m-d');
+    $datee = date ('Y-m-d').'.pdf';
     if (ob_get_level()) {
         ob_end_clean();
       }
-      // заставляем браузер показать окно сохранения файла
       header('Content-Description: File Transfer');
       header('Content-Type: application/octet-stream');
       header('Content-Disposition: attachment; filename=user_report_'.$datee);
@@ -271,7 +222,6 @@ $app->get('/users_download_report', function (Request $request, Response $respon
       header('Cache-Control: must-revalidate'); 
       header('Pragma: public');
       header('Content-Length: ' . filesize($file));
-      // читаем файл и отправляем его пользователю
       readfile($file);
       exit;
 });
@@ -286,26 +236,19 @@ $app->get('/products', function (Request $request, Response $response, $args) {
     return $view->render($response, 'products.html', [
         'products' => $products
     ]);
-    die;
 });
 
 $app->post('/add-cart', function (Request $request, Response $response, $args) {
-    try
-    {
-        $parsedBody = $request->getParsedBody();
-        $id = $parsedBody["itemId"];
-        $basket = array();
-        if(isset($_COOKIE['basket']))
-            $basket = json_decode($_COOKIE['basket'], true);
-        $basket[] = $id;
-        setcookie("basket", json_encode($basket));
-        $redirect = "http://localhost:8888/products";
-        header("Location: $redirect");
-    }
-    catch(Throwable $ex)
-    {
-        return $response->withStatus($ex->getCode());
-    }
+    $parsedBody = $request->getParsedBody();
+
+    $id = $parsedBody["itemId"];
+    $basket = array();
+    if(isset($_COOKIE['basket']))
+        $basket = json_decode($_COOKIE['basket'], true);
+    $basket[] = $id;
+    setcookie("basket", json_encode($basket));
+    $redirect = "http://localhost:8888/products";
+    header("Location: $redirect");
 });
 
 $app->get('/cart', function (Request $request, Response $response, $args) {
@@ -318,56 +261,38 @@ $app->get('/cart', function (Request $request, Response $response, $args) {
     if(isset($_COOKIE['basket']))
         $basket = json_decode($_COOKIE['basket'], true);
     $newBasket = array();
-    for ($i = 0; $i < count($basket); $i++) {
-        $product = $products[$basket[$i]];
-        $newProduct = (object) [
-            'id' => $product->id,
-            'name' => $product->name,
-            'price' => $product->price,
-            'image' => $product->image,
-            'arrayId' => $i,
-          ];
+    $per = array_count_values($basket);
+    foreach($per as $key=>$value){
+        $product = $products[$key-1];
+        if($product->name && $product->price && $product->image){
+            $newProduct = (object) [
+                'key' => $key,
+                'name' => $product->name,
+                'price' => $product->price,
+                'image' => $product->image,
+                'count' => $value,
+              ];
+        }
         $newBasket[] = $newProduct;
     }
-    // foreach($basket as $id)
-    // {
-    //     $product = $products[$id-1];
-    //     $product->arrayId =  $id-1;
-    //     $newBasket[] = $products[$id-1];
-    // }
+    dump($newBasket);
     $view = Twig::fromRequest($request);
     return $view->render($response, 'cart.html', [
         'products' => $newBasket
     ]);
-    die;
 });
 
 $app->post('/remove-cart', function (Request $request, Response $response, $args) {
-    try
-    {
-        $parsedBody = $request->getParsedBody();
-        $arrayId = $parsedBody["itemId"];
-        $basket = array();
-        if(isset($_COOKIE['basket']))
-            $basket = json_decode($_COOKIE['basket'], true);
-        if($arrayId == count($basket)-1){
-            array_pop($basket);
-        }
-        else{
-            for ($i = $arrayId; $i < count($basket)-1; $i++) {
-                // dump($i);
-                $basket[$i] = $basket[$i+1];
-            }
-            array_pop($basket);
-        }
-        setcookie("basket", json_encode($basket));
-        $redirect = "http://localhost:8888/cart";
-        header("Location: $redirect");
-    }
-    catch(Throwable $ex)
-    {
-        return $response->withStatus($ex->getCode());
-    }
+    $parsedBody = $request->getParsedBody();
+    $arrayId = $parsedBody["key"];
+    $basket = array();
+    if(isset($_COOKIE['basket']))
+        $basket = json_decode($_COOKIE['basket'], true);
+    $key = array_search($arrayId, $basket);
+    unset($basket[$key]);
+    setcookie("basket", json_encode($basket));
+    $redirect = "http://localhost:8888/cart";
+    header("Location: $redirect");
 });
 
 $methodOverrideMiddleware = new MethodOverrideMiddleware();
